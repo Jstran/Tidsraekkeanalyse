@@ -12,3 +12,12 @@ library(astsa)
 library(forecast)
 ```
 
+## Opgave 10.2
+An AR model has AR characteristic polynomial
+\[
+(1 - 1.6x + 0.7x^2)(1 - 0.8x^{12})
+\]
+
+a) Is the model stationary?
+
+b) Identify the model as certain seasonal ARIMA model.
