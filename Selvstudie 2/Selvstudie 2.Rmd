@@ -1,0 +1,14 @@
+---
+title: "Selvstudie 2"
+author: "Jonathan Strandberg"
+date: "18 mar 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stats)
+library(astsa)
+library(forecast)
+```
+

@@ -1,0 +1,55 @@
+---
+title: "Kursusgang 7"
+author: "Jonathan Strandberg"
+date: "13 mar 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(astsa)
+library(fracdiff)
+library(forecast)
+```
+
+## Opgave 5.1 [ShSt]
+Datasættet arf er 1000 simulerede observationer fra en ARFIMA$(1,1,0)$ model med $\phi=0.75$ og $d=0.4$
+a) Plot the data and comment
+```{r}
+plot(arf , main = "Simuleret ARFIMA(1,1,0)")
+```
+
+Ser ikke stationært ud
+
+b) Plot the ACF and PACF of the data and comment
+```{r}
+acf(arf) ; pacf(arf)
+```
+
+PACF "cutter off" efter lag 2, og tyder på at det er en AR(2) model
+
+c) Estimate the parameters and test for the significance of the estimates $\widehat{\phi}$ and $\widehat{d}$
+```{r}
+summary(fracdiff(arf , nar = 1))
+```
+Ses at både $\widehat{\phi}$ and $\widehat{d}$ er meget signifikante
+
+d) Explain why, using the results of parts (a) and (b), it would seem reasonable to difference the data prior to the analysis. That is, if $x_t$ represents the data, explain why we might choose to fit an ARMA model to $\Delta x_t$
+
+Ser ikke stationæer ud så det er rimeligt at diffe
+
+e) Plot the ACF and PACF of $\Delta x_t$ and comment
+```{r}
+darf <- diff(arf)
+
+acf(darf) ; pacf(darf)
+```
+
+Ved at se på ACF ligner det at $\Delta x_t$ er stationær
+
+f) Fit an ARMA model to $\Delta x_t$ and comment
+```{r}
+auto.arima(darf)
+sarima(darf , 1 , 0 , 0 , details = FALSE )$ttable
+```
+

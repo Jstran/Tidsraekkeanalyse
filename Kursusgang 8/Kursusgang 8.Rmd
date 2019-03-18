@@ -1,0 +1,28 @@
+---
+title: "Kursusgang 8"
+author: "Jonathan Strandberg"
+date: "15 mar 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+library(stats)
+library(astsa)
+library(tseries)
+library(forecast)
+```
+
+## Opgave 5.3
+Plot the global temperature series, 'globtemp', and then test whether there is a unit root versus the alternative that the process is stationary using the three tests, DF, ADF, PP, discussed in Eample 5.3. Comment
+```{r}
+plot(globtemp , ylab = "Global Temperature")
+
+# Forkastest H_0: Ikke stationær
+PPp  <- pp.test(globtemp)$p.value          # PP
+ADFp <- adf.test(globtemp)$p.value         # ADF
+DFp  <- adf.test(globtemp , k = 0)$p.value # DF
+
+data.frame(PP=PPp , ADF=ADFp , DF=DFp)
+```
+Det ses at ADF som den eneste påstår stationaritet, som det ligner at der er.
