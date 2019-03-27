@@ -10,9 +10,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(stats)
 library(astsa)
 library(forecast)
+library(tseries)
 ```
 
-## Opgave 10.2
+## Problem 10.2
 An AR model has AR characteristic polynomial
 \[
 (1 - 1.6x + 0.7x^2)(1 - 0.8x^{12})
@@ -20,4 +21,31 @@ An AR model has AR characteristic polynomial
 
 a) Is the model stationary?
 
+\[
+1 - 1.6x + 0.7x^2 -0.8x^{12} + 1.28x^{13} - 0.56x^{14}
+\]
+```{r}
+coeff <- c(1,-1.6,0.7,0,0,0,0,0,0,0,0,0,-0.8,1.28,-0.56)
+roots <- polyroot(coeff)
+sapply(roots , norm , type="2")
+
+# arima.sim(list(ar = coeff[-1]),n = 1000) # Kan ikke køre ('ar' part of model is not stationary)
+```
+
+Ingen rødder på enhedscirklen $\Leftrightarrow$ stationær
+
+
 b) Identify the model as certain seasonal ARIMA model.
+
+
+## Problem 10.7
+Suppose that the process $\{Y_t\}$ develops according to $Y_t = Y_{t-4} + e_t$ with $Y_t = e_t$ for $t = 1,2,3,4$
+
+a) Find the variance function for $\{Y_t\}$
+\[
+  Var[Y_t] = ceiling\left(\frac{t}{4}\right)^2 \sigma_e^2
+\]
+
+b) Find the autocorrelation function for $\{Y_t\}$
+
+c) Identify the model for $\{Y_t\}$ as a certain seasonal ARIMA

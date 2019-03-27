@@ -1,0 +1,95 @@
+---
+title: "Kursusgang 9"
+author: "Jonathan Strandberg"
+date: "20 mar 2019"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stats)
+library(forecast)
+library(tseries)
+```
+
+```{r , include = FALSE}
+2+2
+```
+
+## Spørgsmål 1
+Plot de to månedlige vekselkursseries. Mener du, at der muligvis er en stabil relation mellem de to valutakurser?
+```{r}
+load("exchange.Rdata") ; load("quarterly.Rdata")
+DKUS <- ts(exchange$EXCDKUS) ; SEUS <- ts(exchange$EXCSEUS)
+
+plot(DKUS , col = "blue" , ylim = c(3,13) , ylab = "Exchange Rate")
+lines(SEUS, col = "red")
+legend(x = 1 , y = 12.5 , c("DKUS" , "SEUS") , c("blue" , "red"))
+
+```
+Ligner at de følger hinanden
+
+## Spørgsmål 2
+
+I det følgende arbejdes med den naturlige logaritme til valutakurserne. Er tidsrækkerne I(1) eller I(0) (brug ikke en deterministisk tidstrend)? Er de kointegrerede? Hvad konkluderer du om en eventuel langsigtssammenhæng eller ej?
+
+```{r}
+lDKUS <- log(DKUS) ; lSEUS <- log(SEUS)
+df <- data.frame(lDKUSp = numeric(3) , lSEUSp = numeric(3))
+row.names(df) <- c("DF" , "ADF" , "PP")
+df$lDKUSp <- c(adf.test(lDKUS , k = 0)$p.value,
+               adf.test(lDKUS)$p.value ,
+               pp.test(lDKUS)$p.value )
+
+df$lSEUSp <- c(adf.test(lSEUS , k = 0)$p.value ,
+               adf.test(lSEUS)$p.value ,
+               pp.test(lSEUS)$p.value ) ; df
+```
+P-værdierne for alle tests er over 0.05 med H1 : Stationaritet. Så arbejdshypotesen er at der ikke er stationaritet og de er så I(1) processer.
+
+```{r}
+# Fra Eges slides muligvis ligegyldigt
+y2 <- lDKUS ; y1 = lSEUS
+lr.reg <- lm(y2 ~ y1)
+error <- residuals(lr.reg)
+error.lagged <- error[-c(99,100)]
+dy1 <- diff(y1)
+dy2 <- diff(y2)
+diff.dat <- data.frame(embed(cbind(dy1,dy2),2))
+colnames(diff.dat) <- c("dy1","dy2","dy1.1","dy2.1")
+ecm.reg <- lm(dy2 ~ error.lagged + dy1.1 + dy2.1,data = diff.dat)
+```
+
+```{r}
+lr.reg <- lm(lDKUS ~lSEUS)
+res <- lr.reg$residuals
+
+plot(res , type = "l")
+adf.test(res)
+```
+Ingen langsigtssammenhæng da de ikke er kointegrerede
+
+## Spørgsmål 3
+
+Lad $x_t$ være vækstraten af den svenske krone, og lad $y_t$ være vækstraten af den danske krone. Du vil undersøge om fremtidige værdier af $y$ kan forklares ved nuværende værdier af $x$ og $y$. Specifikt, så betragtes den følgende model:
+\[
+  y_t = \beta_0 + \beta_1x_{t-1} + \beta_2y_{t-1} + w_t,
+\]
+$w_t$ hvid støj. Estimer denne model, og undersøg om væsentlige modelforudsætninger er opfyldt eller ej, og undersøg ud fra det, om og i givet fald hvordan, $y$ kan forklares ud fra denne model.
+
+```{r}
+y <- diff(lDKUS)
+x <- diff(lSEUS)
+
+plot(x , col = "blue" , ylab = "Exchange Rate Growth")
+lines(y, col = "red")
+legend(x = 0 , y = 0.14 , c("dlDKUS" , "dlSEUS") , c("blue" , "red"))
+
+xl <- embed(x , 2) # Lags af x (sølje 1 er lag 0)
+yl <- embed(y , 2) # Lags af y (søjle 1 er lag 0)
+
+lm.reg <- lm(yl[,1] ~ xl[,2] + yl[,2])
+summary(lm.reg)
+
+plot(lm.reg$residuals)
+```
+

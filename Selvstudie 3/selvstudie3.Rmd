@@ -1,0 +1,174 @@
+---
+title: "Selvstudiegang 3"
+output: pdf_document
+---
+
+```{r , include = FALSE}
+library(Ecdat)
+library(fracdiff)
+library(tseries)
+```
+
+
+Opgave 1: Long memory
+---------------------
+
+Fra datasættet `Mishkin` i **R**-pakken `Ecdat` betragtes ændringerne i kvadratroden af
+forbrugerprisindekset `cpi`.
+
+1.  Beregn denne variabel og kald den `DiffSqrtCpi`. Plot
+    tidsrækken og dens ACF. Er der tegn på *long-memory*? I bekræftende
+    fald, hvordan ses det?
+
+```{r}
+DiffSqrtCpi <- diff(sqrt( Mishkin[,5] ))
+
+plot(DiffSqrtCpi , type = "l")
+acf(DiffSqrtCpi)
+```
+
+
+2.  Estimer en passende model for tidsrækken `DiffSqrtCpi`. Dette kan gøres på forskellige måder:
+    - Enten via pakken `fracdiff` samt eventuelt procedurerne i filen `Polyprocs.R`
+    (se dokumentationen i notatet om lag polynomier `polynom.pdf`).
+    - Eller via pakken `arfima` som tilpasser fraktionelle
+        modeller og giver mere rimelige estimater af usikkerheden. Se *Example 5.1 Redux* på denne side som inspiration: <https://www.stat.pitt.edu/stoffer/tsa4/Rexamples.htm>
+
+```{r}
+fd <- fracdiff(DiffSqrtCpi)
+
+ds <- diffseries(DiffSqrtCpi , fd$d)
+
+plot(ds)
+```
+
+
+3.  Er der ud fra autokorrelationsfunktionen af den fraktionelt
+    differensede tidsrække (som selvfølgelig er fremkommet ved
+    fraktionel differensning ved brug af den estimerede $d$ fra tidligere spm.)
+    kort og eller lang hukommelse i denne?
+    
+    (Vink: Brug `diffseries` fra pakken `fracdiff`.)
+
+```{r}
+acf(ds)
+```
+Der er kort
+
+Opgave 2: Kointegration og ECM
+------------------------------
+
+1. Betragt følgende såkaldte *autoregressive distributed lag* (ADL) model, hvor $y_t$ og $x_t$ er to tidsrækker, og $w_t$ er en hvid støj, og hvor $|\phi_1|<1$:
+$$y_t=\alpha + \phi_1y_{t-1}+\beta_0x_t+\beta_1x_{t-1}+w_t.$$
+
+    **Spm1:** Vis at
+    $$\sum_{s=0}^{\infty}\frac{\partial y_{t+s}}{\partial x_t}=\frac{\beta_0+\beta_1}{1-\phi_1}.$$
+    Denne størrelse kaldes langsigtsmultiplikatoren (*the long run
+    multiplier*). Dvs. langsigts påvirkningen af $x_t$ på $y$-processen.
+
+    **Spm2:** Vis at ADL modellen kan skrives som følgende
+    fejlkorrektionsmodel (ECM),
+    $$\nabla y_t = \beta_0\nabla x_t -(1-\phi_1)(y_{t-1}-\mu- \beta_2 x_{t-1}) + w_t,$$
+    hvor $\mu=\frac{\alpha}{1-\phi_1}$ og hvor
+    $\beta_2=\frac{\beta_0+\beta_1}{1-\phi_1}$ er
+    langsigtsmultiplikatoren. *VINK: Start med at omskrive ECM og nå frem til ADL*.
+
+    **Spm3:** Hvilken simpel ligevægtsrelation ville opnås mellem $y$ og
+    $x$ på langt sigt, hvis vi antog at $w_t=0$, og at værdierne af
+    $y_t=y_{t-1}=y$ og $x_t=x_{t-1}=x$ var faste?
+
+2.  Download filen `ibr.Rdata` fra Moodle. Filen indeholder *Interest
+    and Bond Rates (IBR)* data fra USA. `AAA` er månedlige *corporate
+    bond yields* (Triple A obligationer) i procenter og `US3MT` er
+    månedlige *three-month US Treasury Bill rates* (skatkammerbeviser) i
+    procenter. `DAAA` og `DUS3MT` er førstedifferenserne af disse to
+    variable.
+
+```{r}
+load("ibr.Rdata")
+head(ibr)
+```
+
+    **Spm1:** Vis at `AAA` og `US3MT` kointegrerer.
+
+```{r}
+lm.reg <- lm(ibr$AAA ~ ibr$US3MT)
+lm.err <- lm.reg$residuals
+
+adf.test(lm.err , k = 0)
+```
+
+Forkaster nulhypotesen om at residualerne ikke er stationære, altså kointegrerer `AAA` og `US3MT` 
+
+    **Spm2:** Hvis $y_t=$`AAA`, og $x_t=$`US3MT` estimér da modellen
+    og tolk koefficienterne.
+
+```{r}
+yl <- embed(ibr$AAA , 2)
+xl <- embed(ibr$US3MT , 2)
+
+lm.reg.ADL <- lm(yl[,1] ~ yl[,2] + xl[,1] + xl[,2])
+summary(lm.reg.ADL)
+```
+
+
+Opgave 3: Kointegration med flere tidsrækker
+--------------------------------------------
+
+Datafilen `GNP.RData` indeholder årlige data for
+bruttonationalproduktet (GNP) for fire lande i perioden 1885–1993.
+Det kan være en fordel at lave denne til en mulitvariat tidsrække (`mts` object).
+Dette gøres via `ts`-kommandoen med en `matrix`/`data.frame` som input, f.eks:
+```{r}
+load("GNP.RData")
+GNP2 <- ts(GNP[, 6:9], start = 1885, frequency = 1)
+```
+
+1.  Plot de fire tidsrækker (i logaritmer) i samme figur. Og kommentér
+    graferne.
+
+```{r}
+ts.plot( GNP2 , col = 1:4) # Er logget i forvejen
+#legend(x = 1885 , y = 15.5, colnames(GNP[2:5])  , fill = palette()[1:4] )
+legend(x = 1885 , y = 15.5, colnames(GNP[2:5]) , col = 1:4 , lty = 1 )
+```
+
+
+2.  Test om de fire tidsrækker hver for sig har en unit root.
+
+```{r}
+df <- data.frame( GER = adf.test(GNP2[,1] , k = 0)$p.value ,
+                  JAP = adf.test(GNP2[,2] , k = 0)$p.value ,
+                  UK  = adf.test(GNP2[,3] , k = 0)$p.value ,
+                  USA = adf.test(GNP2[,4] , k = 0)$p.value ) ; df
+
+```
+Unit root i alle
+
+3.  Undersøg om de fire tidsrækker (i logaritmer) kointegrerer. Brug Engle-Granger metoden, og lad de amerikanske data
+    være responsvariablen i regressionen.
+
+```{r}
+
+lm.err.mts <- lm(GNP2[,4] ~ GNP2[,1] + GNP2[,2] + GNP2[,3])$residuals
+
+adf.test(lm.err.mts , k = 0)
+
+
+# Det herunder er ikke hvad der er tænkt med opgaven
+df <- data.frame(GER = numeric(4) , JAP = numeric(4) , UK = numeric(4) , USA = numeric(4))
+rownames(df) <- c("GER" , "JAP" , "UK" , "USA")
+
+for(i in 1:4){
+  for(j in 1:4){
+    lm.err <- lm(GNP2[,i] ~ GNP2[,j])$residuals
+    df[i,j] <- adf.test(lm.err , k = 0)$p.value
+  }
+}
+
+df
+df < 0.05 # TRUE hvis nulhypotesen om ikke stationaritet forkastes, og der "er" kointegration
+
+```
+Ingen kointegration da der kun forkastes når en tidsrække bliver sammenlignet med sig selv
+
